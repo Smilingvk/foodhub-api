@@ -5,7 +5,7 @@ const passport = require('passport');
 passport.use(new GitHubStrategy({
     clientID: process.env.GITHUB_CLIENT_ID,
     clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: process.env.CALLBACK_URL || "https://foodhub-api-mhb6.onrender.com/github/callback"
+    callbackURL: process.env.CALLBACK_URL || "https://foodhub-api-mhb6.onrender.com/auth/callback"
   },
   function(accessToken, refreshToken, profile, done) {
     // En producción, aquí guardarías/buscarías el usuario en la BD
