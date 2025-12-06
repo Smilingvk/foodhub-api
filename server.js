@@ -17,33 +17,78 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'foodhub-secret-key',
-  resave: false,
+// Session configuration con mejoras de seguridad
+const sessionConfig = {
+  secret: process.env.SESSION_SECRET || 'foodhub-secret-key-change-this',
+  resave: true, // CAMBIADO: forzar guardado en cada request
   saveUninitialized: false,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax', // Importante para OAuth
+    path: '/' // Asegurar que la cookie esté disponible en toda la app
+  },
+  name: 'foodhub.sid' // Nombre personalizado para la cookie de sesión
+};
+
+// En producción con HTTPS
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1); // Confiar en el proxy de Render
+  sessionConfig.cookie.secure = true; // Solo HTTPS
+  sessionConfig.cookie.sameSite = 'none'; // Necesario para OAuth en producción
+}
+
+console.log('🔐 Session config:', {
+  secure: sessionConfig.cookie.secure,
+  sameSite: sessionConfig.cookie.sameSite,
+  environment: process.env.NODE_ENV || 'production'
+});
+
+app.use(session(sessionConfig));
 
 // Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Middleware para sincronizar req.user con req.session.user
+app.use((req, res, next) => {
+  if (req.user && !req.session.user) {
+    console.log('🔄 Syncing req.user to req.session.user');
+    req.session.user = req.user;
+  } else if (!req.user && req.session.user) {
+    console.log('🔄 Restoring req.user from req.session.user');
+    req.user = req.session.user;
+  }
+  next();
+});
+
+// Middleware de debug (solo en desarrollo)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    if (req.path !== '/favicon.ico') { // Ignorar favicon
+      console.log(`📍 ${req.method} ${req.path}`);
+      console.log('🆔 Session ID:', req.sessionID);
+      console.log('✅ Authenticated:', req.isAuthenticated());
+      console.log('👤 Session User:', req.session.user ? req.session.user.username : 'none');
+    }
+    next();
+  });
+}
+
 // ========== SWAGGER DOCUMENTATION ==========
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// ========== ROOT ROUTE (debe ir ANTES de las rutas de auth) ==========
+// ========== ROOT ROUTE ==========
 app.get('/', (req, res) => {
-  console.log('=== HOME PAGE DEBUG ===');
-  console.log('Session ID:', req.sessionID);
-  console.log('Session user:', req.session.user);
-  console.log('Is authenticated:', req.isAuthenticated());
-  
   const isLoggedIn = req.session && req.session.user;
+  
+  if (process.env.NODE_ENV !== 'production') {
+    console.log('=== HOME PAGE DEBUG ===');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session user:', req.session.user);
+    console.log('Is authenticated:', req.isAuthenticated());
+  }
+  
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -369,10 +414,10 @@ app.use((req, res) => {
 
 // ========== ERROR HANDLER ==========
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('❌ Error:', err);
   res.status(500).json({ 
     error: 'Internal Server Error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: process.env.NODE_ENV === 'production' ? err.message : 'Something went wrong'
   });
 });
 
@@ -388,6 +433,7 @@ mongodb.initDb((err) => {
     console.log('🍔 FoodHub API Server');
     console.log('========================================');
     console.log(`🚀 Server running on port ${port}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📚 API Docs: http://localhost:${port}/api-docs`);
     console.log(`🔐 Login: http://localhost:${port}/auth/login`);
     console.log(`✅ Database connected successfully`);
