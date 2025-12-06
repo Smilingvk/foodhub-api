@@ -36,122 +36,320 @@ app.use(passport.session());
 // ========== SWAGGER DOCUMENTATION ==========
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// ========== ROUTES ==========
-app.use('/auth', require('./routes/auth'));
-app.use('/users', require('./routes/users'));
-app.use('/products', require('./routes/products'));
-
-app.get('/auth/callback', 
-  passport.authenticate('github', { 
-    failureRedirect: '/',
-    failureMessage: true 
-  }),
-  (req, res) => {
-    console.log('=== CALLBACK DEBUG ===');
-    console.log('User authenticated:', req.user ? (req.user.username || req.user.displayName) : 'NO USER');
-    console.log('Session ID:', req.sessionID);
-    console.log('Session before save:', req.session);
-    
-    // Guardar usuario en sesión
-    req.session.user = req.user;
-    
-    req.session.save((err) => {
-      if (err) {
-        console.error('Error saving session:', err);
-        return res.redirect('/?error=session-save-failed');
-      }
-      console.log('Session saved successfully');
-      console.log('Session after save:', req.session);
-      res.redirect('/');
-    });
-  }
-);
-
-// ========== ROOT ROUTE ==========
+// ========== ROOT ROUTE (debe ir ANTES de las rutas de auth) ==========
 app.get('/', (req, res) => {
+  console.log('=== HOME PAGE DEBUG ===');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session user:', req.session.user);
+  console.log('Is authenticated:', req.isAuthenticated());
+  
   const isLoggedIn = req.session && req.session.user;
   res.send(`
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
-      <title>FoodHub API</title>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>FoodHub API - Your Food Delivery Backend</title>
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+      <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          max-width: 800px;
-          margin: 50px auto;
-          padding: 20px;
-          background-color: #f5f5f5;
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
+        
+        body {
+          font-family: 'Poppins', sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+        
         .container {
           background: white;
-          padding: 30px;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          padding: 50px;
+          border-radius: 20px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+          max-width: 600px;
+          width: 100%;
+          animation: slideUp 0.5s ease-out;
         }
+        
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .header {
+          text-align: center;
+          margin-bottom: 40px;
+        }
+        
+        .logo {
+          font-size: 60px;
+          margin-bottom: 10px;
+        }
+        
         h1 {
-          color: #ff6b6b;
+          color: #667eea;
+          font-size: 32px;
+          font-weight: 700;
+          margin-bottom: 10px;
         }
-        .status {
-          padding: 10px;
-          border-radius: 4px;
-          margin: 20px 0;
+        
+        .tagline {
+          color: #6b7280;
+          font-size: 16px;
+          font-weight: 300;
         }
+        
+        .status-card {
+          padding: 20px;
+          border-radius: 12px;
+          margin: 30px 0;
+          text-align: center;
+          transition: transform 0.3s ease;
+        }
+        
+        .status-card:hover {
+          transform: translateY(-5px);
+        }
+        
         .logged-in {
-          background-color: #d4edda;
-          color: #155724;
-        }
-        .logged-out {
-          background-color: #f8d7da;
-          color: #721c24;
-        }
-        a {
-          display: inline-block;
-          margin: 10px 10px 10px 0;
-          padding: 10px 20px;
-          background-color: #007bff;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
+        }
+        
+        .logged-out {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: white;
+        }
+        
+        .status-icon {
+          font-size: 48px;
+          margin-bottom: 10px;
+        }
+        
+        .status-text {
+          font-size: 18px;
+          font-weight: 600;
+          margin-bottom: 5px;
+        }
+        
+        .user-info {
+          font-size: 14px;
+          opacity: 0.9;
+          margin-top: 10px;
+        }
+        
+        .buttons {
+          display: flex;
+          flex-direction: column;
+          gap: 15px;
+          margin: 30px 0;
+        }
+        
+        .btn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px 32px;
           text-decoration: none;
-          border-radius: 4px;
+          border-radius: 12px;
+          font-weight: 600;
+          font-size: 16px;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+          border: none;
+          cursor: pointer;
         }
-        a:hover {
-          background-color: #0056b3;
+        
+        .btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.3);
         }
-        .logout-btn {
-          background-color: #dc3545;
+        
+        .btn-primary {
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
         }
-        .logout-btn:hover {
-          background-color: #c82333;
+        
+        .btn-github {
+          background: #24292e;
+          color: white;
+        }
+        
+        .btn-github:hover {
+          background: #1a1f23;
+        }
+        
+        .btn-danger {
+          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+          color: white;
+        }
+        
+        .btn-icon {
+          margin-right: 10px;
+          font-size: 20px;
+        }
+        
+        .features {
+          margin: 30px 0;
+          padding: 25px;
+          background: #f9fafb;
+          border-radius: 12px;
+        }
+        
+        .features h3 {
+          color: #374151;
+          font-size: 18px;
+          margin-bottom: 15px;
+          font-weight: 600;
+        }
+        
+        .features ul {
+          list-style: none;
+        }
+        
+        .features li {
+          padding: 10px 0;
+          color: #6b7280;
+          display: flex;
+          align-items: center;
+        }
+        
+        .features li:before {
+          content: "🍔";
+          margin-right: 10px;
+          font-size: 20px;
+        }
+        
+        .features li:nth-child(2):before { content: "🍟"; }
+        .features li:nth-child(3):before { content: "🥤"; }
+        .features li:nth-child(4):before { content: "🔐"; }
+        
+        .footer {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          color: #9ca3af;
+          font-size: 14px;
+        }
+        
+        .badge {
+          display: inline-block;
+          padding: 4px 12px;
+          background: #10b981;
+          color: white;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          margin-left: 10px;
+        }
+        
+        @media (max-width: 600px) {
+          .container {
+            padding: 30px 20px;
+          }
+          
+          h1 {
+            font-size: 24px;
+          }
+          
+          .btn {
+            padding: 14px 24px;
+            font-size: 14px;
+          }
         }
       </style>
     </head>
     <body>
       <div class="container">
-        <h1>🍔 Welcome to FoodHub API</h1>
-        <p>Backend service for online food store - meals, snacks, and drinks</p>
+        <div class="header">
+          <div class="logo">🍔</div>
+          <h1>FoodHub API <span class="badge">v1.0</span></h1>
+          <p class="tagline">Backend service for your food delivery app</p>
+        </div>
         
-        <div class="status ${isLoggedIn ? 'logged-in' : 'logged-out'}">
-          <strong>Status:</strong> ${isLoggedIn ? '✓ Logged In' : '✗ Not Logged In'}
-          ${isLoggedIn ? `<br><strong>User:</strong> ${req.session.user.displayName || req.session.user.username}` : ''}
+        <div class="status-card ${isLoggedIn ? 'logged-in' : 'logged-out'}">
+          <div class="status-icon">${isLoggedIn ? '✓' : '🔒'}</div>
+          <div class="status-text">
+            ${isLoggedIn ? 'Successfully Authenticated' : 'Authentication Required'}
+          </div>
+          ${isLoggedIn ? `
+            <div class="user-info">
+              <strong>Welcome back, ${req.session.user.displayName || req.session.user.username}!</strong><br>
+              Logged in via GitHub OAuth
+            </div>
+          ` : `
+            <div class="user-info">
+              Login with GitHub to access protected endpoints
+            </div>
+          `}
         </div>
 
-        <h3>Quick Links:</h3>
-        ${!isLoggedIn ? '<a href="/auth/login">🔐 Login with GitHub</a>' : '<a href="/auth/logout" class="logout-btn">🚪 Logout</a>'}
-        <a href="/api-docs">📚 API Documentation</a>
+        <div class="buttons">
+          ${!isLoggedIn ? `
+            <a href="/auth/login" class="btn btn-github">
+              <span class="btn-icon">
+                <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+              </span>
+              Sign in with GitHub
+            </a>
+          ` : `
+            <a href="/auth/logout" class="btn btn-danger">
+              <span class="btn-icon">🚪</span>
+              Logout
+            </a>
+          `}
+          
+          <a href="/api-docs" class="btn btn-primary">
+            <span class="btn-icon">📚</span>
+            API Documentation
+          </a>
+        </div>
         
-        <h3>Available Endpoints:</h3>
-        <ul>
-          <li><strong>Authentication:</strong> /auth/login, /auth/logout</li>
-          <li><strong>Users:</strong> GET, POST, PUT, DELETE /users</li>
-          <li><strong>Products:</strong> GET, POST, PUT, DELETE /products</li>
-        </ul>
-
-        <p><em>Created by: Valeria Guzman</em></p>
+        <div class="features">
+          <h3>🚀 Available Features</h3>
+          <ul>
+            <li><strong>User Management:</strong> CRUD operations for customer profiles</li>
+            <li><strong>Product Inventory:</strong> Manage meals, snacks & drinks</li>
+            <li><strong>Secure Authentication:</strong> GitHub OAuth integration</li>
+            <li><strong>RESTful API:</strong> Full OpenAPI 3.0 documentation</li>
+          </ul>
+        </div>
+        
+        <div class="footer">
+          <p>Created with ❤️ by <strong>Valeria Guzman</strong></p>
+          <p style="margin-top: 10px; font-size: 12px;">
+            MongoDB · Express.js · Node.js · Passport.js
+          </p>
+        </div>
       </div>
     </body>
     </html>
   `);
 });
+
+// ========== ROUTES ==========
+app.use('/auth', require('./routes/auth'));
+app.use('/users', require('./routes/users'));
+app.use('/products', require('./routes/products'));
 
 // ========== 404 HANDLER ==========
 app.use((req, res) => {
