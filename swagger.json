@@ -1,0 +1,690 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "FoodHub API",
+    "version": "1.0.0",
+    "description": "Backend service for FoodHub - an online food store selling prepared meals, snacks, and drinks. Features include user management, product inventory, and OAuth authentication.",
+    "contact": {
+      "name": "Valeria Guzman",
+      "email": "foodhub@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://your-app.onrender.com",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "GitHub OAuth authentication endpoints"
+    },
+    {
+      "name": "Users",
+      "description": "User management operations"
+    },
+    {
+      "name": "Products",
+      "description": "Food inventory management (meals, snacks, drinks)"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Login with GitHub OAuth",
+        "description": "Redirects to GitHub for authentication",
+        "responses": {
+          "302": {
+            "description": "Redirect to GitHub OAuth"
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Logout",
+        "description": "Ends user session and redirects to API docs",
+        "responses": {
+          "302": {
+            "description": "Logout successful, redirect to docs"
+          }
+        }
+      }
+    },
+    "/users": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get all users",
+        "description": "Returns a list of all registered users",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Users"],
+        "summary": "Create a new user",
+        "description": "Register a new user in the system. Requires authentication.",
+        "security": [{"OAuth2": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInput"
+              },
+              "example": {
+                "firstName": "Maria",
+                "lastName": "Rodriguez",
+                "email": "maria@example.com",
+                "phone": "+1234567890",
+                "address": "123 Main St, City, State"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User created successfully"
+                    },
+                    "userId": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing required fields"
+          },
+          "401": {
+            "description": "Unauthorized - authentication required"
+          },
+          "409": {
+            "description": "Email already exists"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "Get user by ID",
+        "description": "Returns a single user by their ID",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User ID (MongoDB ObjectId)",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Users"],
+        "summary": "Update user",
+        "description": "Update user information. Requires authentication.",
+        "security": [{"OAuth2": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserInput"
+              },
+              "example": {
+                "firstName": "Maria Updated",
+                "phone": "+1987654321"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "matchedCount": {"type": "number"},
+                    "modifiedCount": {"type": "number"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Users"],
+        "summary": "Delete user",
+        "description": "Delete a user from the system. Requires authentication.",
+        "security": [{"OAuth2": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "User ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "User deleted successfully"
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "User not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get all products",
+        "description": "Returns the complete food inventory (meals, snacks, drinks)",
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Products"],
+        "summary": "Add new product",
+        "description": "Add a new item to the food inventory. Requires authentication (admin only in future).",
+        "security": [{"OAuth2": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductInput"
+              },
+              "examples": {
+                "meal": {
+                  "summary": "Example meal",
+                  "value": {
+                    "name": "Grilled Chicken Sandwich",
+                    "description": "Juicy grilled chicken with lettuce, tomato, and mayo on whole wheat bread",
+                    "price": 8.99,
+                    "category": "meals",
+                    "stock": 50,
+                    "image": "https://example.com/chicken-sandwich.jpg",
+                    "isAvailable": true
+                  }
+                },
+                "snack": {
+                  "summary": "Example snack",
+                  "value": {
+                    "name": "Nachos Supreme",
+                    "description": "Crispy tortilla chips with cheese, jalapeños, and guacamole",
+                    "price": 5.50,
+                    "category": "snacks",
+                    "stock": 75,
+                    "image": "https://example.com/nachos.jpg",
+                    "isAvailable": true
+                  }
+                },
+                "drink": {
+                  "summary": "Example drink",
+                  "value": {
+                    "name": "Fresh Orange Juice",
+                    "description": "100% natural freshly squeezed orange juice",
+                    "price": 3.99,
+                    "category": "drinks",
+                    "stock": 100,
+                    "image": "https://example.com/orange-juice.jpg",
+                    "isAvailable": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {"type": "string"},
+                    "productId": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing required fields"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": ["Products"],
+        "summary": "Get product by ID",
+        "description": "Returns details of a specific product",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Product ID",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "404": {
+            "description": "Product not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "put": {
+        "tags": ["Products"],
+        "summary": "Update product",
+        "description": "Update product information. Requires authentication (admin only in future).",
+        "security": [{"OAuth2": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Product ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductInput"
+              },
+              "example": {
+                "price": 9.99,
+                "stock": 40,
+                "isAvailable": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Product updated successfully"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Product not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Products"],
+        "summary": "Delete product",
+        "description": "Remove a product from inventory. Requires authentication (admin only in future).",
+        "security": [{"OAuth2": []}],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Product ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Product deleted successfully"
+          },
+          "400": {
+            "description": "Invalid ID format"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Product not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "User ID (MongoDB ObjectId)",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "firstName": {
+            "type": "string",
+            "description": "User's first name",
+            "example": "Maria"
+          },
+          "lastName": {
+            "type": "string",
+            "description": "User's last name",
+            "example": "Rodriguez"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User's email address",
+            "example": "maria@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "description": "User's phone number",
+            "example": "+1234567890"
+          },
+          "address": {
+            "type": "string",
+            "description": "User's delivery address",
+            "example": "123 Main St, City, State"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Account creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          }
+        }
+      },
+      "UserInput": {
+        "type": "object",
+        "required": ["firstName", "lastName", "email"],
+        "properties": {
+          "firstName": {
+            "type": "string",
+            "example": "Maria"
+          },
+          "lastName": {
+            "type": "string",
+            "example": "Rodriguez"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "maria@example.com"
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1234567890"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Main St, City, State"
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "description": "Product ID",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "name": {
+            "type": "string",
+            "description": "Product name",
+            "example": "Grilled Chicken Sandwich"
+          },
+          "description": {
+            "type": "string",
+            "description": "Product description",
+            "example": "Juicy grilled chicken with fresh vegetables"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Product price in USD",
+            "example": 8.99
+          },
+          "category": {
+            "type": "string",
+            "enum": ["meals", "snacks", "drinks"],
+            "description": "Product category",
+            "example": "meals"
+          },
+          "stock": {
+            "type": "number",
+            "description": "Available quantity",
+            "example": 50
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "description": "Product image URL",
+            "example": "https://example.com/product.jpg"
+          },
+          "isAvailable": {
+            "type": "boolean",
+            "description": "Product availability status",
+            "example": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp"
+          }
+        }
+      },
+      "ProductInput": {
+        "type": "object",
+        "required": ["name", "description", "price", "category"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Grilled Chicken Sandwich"
+          },
+          "description": {
+            "type": "string",
+            "example": "Delicious grilled chicken with fresh vegetables"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "example": 8.99
+          },
+          "category": {
+            "type": "string",
+            "enum": ["meals", "snacks", "drinks"],
+            "example": "meals"
+          },
+          "stock": {
+            "type": "number",
+            "example": 50
+          },
+          "image": {
+            "type": "string",
+            "format": "uri",
+            "example": "https://example.com/product.jpg"
+          },
+          "isAvailable": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "OAuth2": {
+        "type": "oauth2",
+        "description": "GitHub OAuth authentication",
+        "flows": {
+          "authorizationCode": {
+            "authorizationUrl": "/auth/login",
+            "tokenUrl": "/auth/callback",
+            "scopes": {}
+          }
+        }
+      }
+    }
+  }
+}
