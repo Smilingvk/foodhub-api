@@ -41,6 +41,32 @@ app.use('/auth', require('./routes/auth'));
 app.use('/users', require('./routes/users'));
 app.use('/products', require('./routes/products'));
 
+app.get('/auth/callback', 
+  passport.authenticate('github', { 
+    failureRedirect: '/',
+    failureMessage: true 
+  }),
+  (req, res) => {
+    console.log('=== CALLBACK DEBUG ===');
+    console.log('User authenticated:', req.user ? (req.user.username || req.user.displayName) : 'NO USER');
+    console.log('Session ID:', req.sessionID);
+    console.log('Session before save:', req.session);
+    
+    // Guardar usuario en sesión
+    req.session.user = req.user;
+    
+    req.session.save((err) => {
+      if (err) {
+        console.error('Error saving session:', err);
+        return res.redirect('/?error=session-save-failed');
+      }
+      console.log('Session saved successfully');
+      console.log('Session after save:', req.session);
+      res.redirect('/');
+    });
+  }
+);
+
 // ========== ROOT ROUTE ==========
 app.get('/', (req, res) => {
   const isLoggedIn = req.session && req.session.user;
