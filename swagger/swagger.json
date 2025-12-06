@@ -11,7 +11,7 @@
   },
   "servers": [
     {
-      "url": "https://your-app.onrender.com",
+      "url": "https://foodhub-api-mhb6.onrender.com",
       "description": "Production server"
     },
     {
