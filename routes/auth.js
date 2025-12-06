@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/login', passport.authenticate('github', { scope: ['user:email'] }));
 
 // GET /auth/callback - Callback de GitHub OAuth
-router.get('/callback', 
+router.get('/auth/callback', 
   passport.authenticate('github', { failureRedirect: '/api-docs' }),
   (req, res) => {
     // Guardar usuario en sesión
