@@ -395,6 +395,8 @@ app.get('/', (req, res) => {
 app.use('/auth', require('./routes/auth'));
 app.use('/users', require('./routes/users'));
 app.use('/products', require('./routes/products'));
+app.use('/orders', require('./routes/orders'));
+app.use('/reviews', require('./routes/reviews'));
 
 // ========== 404 HANDLER ==========
 app.use((req, res) => {
@@ -433,7 +435,7 @@ mongodb.initDb((err) => {
     console.log('🍔 FoodHub API Server');
     console.log('========================================');
     console.log(`🚀 Server running on port ${port}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'production'}`);
     console.log(`📚 API Docs: http://localhost:${port}/api-docs`);
     console.log(`🔐 Login: http://localhost:${port}/auth/login`);
     console.log(`✅ Database connected successfully`);
